@@ -27,4 +27,4 @@ desktop.ini
 
 # Large files
 *.pdf
-data/
+data/*.pdf
