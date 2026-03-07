@@ -1,7 +1,5 @@
 from dotenv import load_dotenv
 import os
-from langchain_huggingface.embeddings import HuggingFaceEmbeddings
-from langchain_qdrant import QdrantVectorStore
 from retriever import retriever
 from openai import OpenAI
 
