@@ -84,10 +84,6 @@ The pipeline is evaluated using [RAGAS](https://docs.ragas.io) on 20 hand-crafte
 | **Answer Relevancy** | Does the answer actually address the question? | 0.889 |
 | **Context Recall** | Did retrieval find the chunks needed to answer correctly? | 0.717 |
 
-Context recall at 0.717 is the weakest metric — expected with pure dense retrieval. Queries involving specific keywords, numbers, or proper nouns are where dense search underperforms. This is the primary motivation for adding hybrid search. Scores will be updated after each improvement.
-
-Scores are computed once and saved to `data/eval/ragas_scores.json` — no repeated API calls on subsequent runs.
-
 ---
 
 ## 📁 File Structure
@@ -106,7 +102,7 @@ DocMind/
 ├── data/
 │   ├── dsa.pdf              # Sample document (never committed)
 │   └── eval/
-│       ├── qa_pairs.json        # 20 QA pairs for evaluation(auto-generated)
+│       └── qa_pairs.json        # 20 QA pairs for evaluation(auto-generated)
 │
 ├── .env                     # API keys (never committed)
 ├── .env.example             # Safe template
@@ -127,7 +123,7 @@ DocMind/
 ### 1. Clone the repository
 ```bash
 git clone https://github.com/iabhishe-k/docmind.git
-cd docmind
+cd DocMind
 ```
 
 ### 2. Create virtual environment
@@ -159,11 +155,17 @@ docker-compose up -d
 Verify at [http://localhost:6333/dashboard](http://localhost:6333/dashboard)
 
 ### 6. Index your document
+
+Add your own PDF to the `data/` folder, then update the path in `app/embeddings.py`:
+```python
+pdf_path = Path(__file__).parent.parent / "data/your_file.pdf"
+```
+
+Then run:
 ```bash
 cd app
 python embeddings.py
 ```
-This loads `data/dsa.pdf`, chunks it, embeds it, and stores vectors in Qdrant.
 
 ### 7. Run the pipeline
 ```bash
@@ -174,7 +176,6 @@ python rag_pipeline.py
 ```bash
 python evaluator.py
 ```
-Scores are saved after the first run — subsequent runs load from cache.
 
 ---
 
