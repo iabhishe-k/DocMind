@@ -2,63 +2,80 @@ from dotenv import load_dotenv
 import os
 from retriever import retriever
 from openai import OpenAI
+import time
 
 load_dotenv()
 
+def get_llm():
+    return OpenAI()
 
 
+class RAGPipeline:
+    def __init__(self, retriever = retriever):
+        self.retriever = retriever
+        self.llm = get_llm()
 
-client = OpenAI(
-    api_key=os.getenv("GEMINI_API_KEY"),
-    base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
-)
+    def answer(self, question: str) -> dict:
+        
+        results = self.retriever(question)
 
-user_query = input("Ask me anything: ")
+        context_parts = []
+        sources = []
+        chunks_text = []
 
-search_results = retriever(user_query=user_query)
+        for doc in results:
+            source_file = doc.metadata.get('source', 'Unknown')
+            page_num = doc.metadata.get('page_label', '?')
+            source_label = f"{source_file} (page {page_num})"
 
-context = "\n\n\n".join([
-    f"Page Content : {result.page_content}\nPage Number: {result.metadata['page_label']}\nFile Location: {result.metadata['source']}" 
-    for result in search_results
-])
+            context_parts.append(
+                f"[Source: {source_label}]\n{doc.page_content}"
+            )
+            sources.append(source_label)
+            chunks_text.append(doc.page_content)
 
+        context = "\n\n---\n\n".join(context_parts)
 
-SYSTEM_PROMPT = f"""
-You are an AI assistant helping users understand information from a PDF document.
+        SYSTEM_PROMPT = f"""You are a precise document assistant. Answer questions using ONLY the information from the context below.
 
-Use ONLY the provided context to answer the question.
+            Context:
+            {context}
 
-Guidelines:
-- If the answer exists in the context, explain it clearly.
-- Include the page number where the information was found.
-- If the answer is not in the context, respond:
-  "I could not find this information in the provided document."
+            Guidelines:
+            - Answer using ONLY information from the context above
+            - Always mention the page number your answer comes from
+            - If the answer is not in the context, respond exactly:
+            "I could not find this information in the provided document."
+            - Be concise and direct
 
-Context:
-{context}
+            Format your response as:
 
-When answering, follow this format:
+            Answer:
+            <your explanation here>
 
-Answer:
-<explanation>
+            Source:
+            Page <page_number>
+        """
 
-Source:
-Page <page_number>
-"""
+        
+        # Step 5: Call the LLM
+        response = self.llm.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": question}
+            ],
+            max_completion_tokens=200,
+            temperature= 0.2
+        )
 
+        answer_text = response.choices[0].message.content
 
-response = client.chat.completions.create(
-    model="gemini-2.5-flash",
-    messages=[
-        {   "role": "system",
-            "content": SYSTEM_PROMPT
-        },
-        {
-            "role": "user",
-            "content": user_query
+        return {
+            "answer": answer_text,
+            "sources": list(set(sources)),
+            "chunks": chunks_text,
+            "question": question,
         }
-    ],
-    temperature=0.2
-)
 
-print(response.choices[0].message.content)
+        

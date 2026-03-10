@@ -3,7 +3,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 
 
-def load_and_chunk_pdf(file_path: str,):
+def load_and_chunk_pdf(file_path: str):
 
     
     loader = PyPDFLoader(file_path=file_path)

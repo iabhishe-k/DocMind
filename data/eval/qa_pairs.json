@@ -1,0 +1,82 @@
+[
+    {
+        "question": "What is the main focus of these lecture notes?",
+        "ground_truth": "The lecture notes cover key ideas involved in designing algorithms, how they depend on suitable data structures, and how some structures and algorithms are more efficient than others for the same task. They focus on basic tasks such as storing, sorting and searching data."
+    },
+    {
+        "question": "What is an array in computer science?",
+        "ground_truth": "An array is the obvious way to store an ordered collection of items in computer science. Array items are typically stored in a sequence of computer memory locations."
+    },
+    {
+        "question": "What is the difference between time complexity and space complexity?",
+        "ground_truth": "Time complexity measures how quickly an algorithm or program can complete given tasks, while space complexity measures the memory or storage space required. When creating software for serious applications, there is usually a need to judge both how quickly an algorithm can complete tasks and how much memory it uses."
+    },
+    {
+        "question": "What is Big O notation and what does it represent?",
+        "ground_truth": "Big O notation describes the growth class of an algorithm's complexity. The various classes are related as: O(1) ⊆ O(log n) ⊆ O(n) ⊆ O(n log n) ⊆ O(n²) ⊆ O(n³) ⊆ O(2^n). When adding functions from different growth classes, their sum is always in the larger growth class, and only the principal or dominating sub-term is considered."
+    },
+    {
+        "question": "What is a Binary Search Tree?",
+        "ground_truth": "A Binary Search Tree is a particular type of binary tree that provides an efficient way of storing data that allows particular items to be found as quickly as possible. It is an elaboration of binary trees, along with AVL trees and B-trees, which operate more efficiently at the expense of requiring more sophisticated algorithms."
+    },
+    {
+        "question": "How does a B-tree differ from a binary search tree?",
+        "ground_truth": "In a B-tree, a node can have more than two children. If a node has 3 child nodes then it must have 2 separation values s1 and s2. All values in the leftmost subtree will be less than s1, all values in the middle subtree will be between s1 and s2, and all values in the rightmost subtree will be greater than s2. The number of children is restricted to lie between m/2 and m."
+    },
+    {
+        "question": "What is a hash table and what is it used for?",
+        "ground_truth": "A hash table is a data structure for storing items in a computer. The chapter on hash tables discusses storing data alongside other approaches such as arrays, linked lists, and trees. Hash tables can perform quite differently from other data structures when it comes to insertion, deletion and searching, and the best way of storing data depends on the particular application."
+    },
+    {
+        "question": "What is the purpose of a hash function?",
+        "ground_truth": "A hash function converts a key into a number that can be used as an index into a hash table. For example, strings can be converted to numbers by treating them as numbers in base 26, and then the modulo operation is applied. The modulo operation and modular arithmetic are widely used when constructing good hash functions."
+    },
+    {
+        "question": "What is a secondary hash function and why is it needed?",
+        "ground_truth": "A secondary hash function h2(n) is used in double hashing to resolve collisions. It is defined such that it gives the result of integer division and then takes the remainder when divided again. If the secondary hash function would evaluate to zero, it is set to one instead, because a value of zero would mean testing every zeroth location which is not useful."
+    },
+    {
+        "question": "What is the difference between a weakly connected and strongly connected directed graph?",
+        "ground_truth": "An undirected graph is connected if every pair of vertices has a path connecting them. For directed graphs, a digraph is weakly connected if for every two vertices A and B there is either a path from A to B or a path from B to A. It is strongly connected if there are paths leading both ways between every pair of vertices."
+    },
+    {
+        "question": "How do breadth first and depth first graph traversal differ?",
+        "ground_truth": "With both breadth first and depth first traversal, the order of the vertices depends on the implementation. The traversal can be formulated as a search tree and looking at the order in which items are added and processed. Only the vertices in the same connected component as the starting vertex will be listed, so if all vertices must be visited, the traversal process may need to start from multiple vertices."
+    },
+    {
+        "question": "What does Dijkstra's algorithm compute and how does it initialize?",
+        "ground_truth": "Dijkstra's algorithm takes a directed graph with a weight matrix and a start vertex s, and outputs an array D of distances. It initializes by setting D[s] = 0 since the shortest path from s to itself has length zero, and setting D[z] = infinity for every other vertex z since that is certainly an overestimate. Then it sets up a priority queue containing all vertices with the entries of D as the priorities."
+    },
+    {
+        "question": "What are the three O(n²) sorting algorithms discussed and how do their running times compare?",
+        "ground_truth": "The three O(n²) sorting algorithms discussed are Bubble Sort, Insertion Sort, and a third comparison-based sort. For arrays of 1024 integers, Bubble Sort took 3621 units, while the measured running times showed significant practical differences between the algorithms despite having the same theoretical O(n²) complexity. The choice of algorithm can make a big difference in practice even when the asymptotic complexity is the same."
+    },
+    {
+        "question": "How does merge sort handle arrays versus linked lists differently?",
+        "ground_truth": "When arrays are used, the merge algorithm must create a new array to hold the result of the operation at least temporarily. In contrast, when using linked lists, it would be possible for merge to work by just changing the reference to the next node, though this makes for somewhat more confusing code. The merge algorithm for arrays starts by creating a new array b to store results, then repeatedly adds the next smallest item until one sub-array is exhausted."
+    },
+    {
+        "question": "What is a binomial heap and how is its structure determined?",
+        "ground_truth": "A binomial tree of order k contains exactly 2^k nodes, and a binomial heap can only contain zero or one binomial tree of each order. The total number of nodes in a binomial heap is n = sum of bk * 2^k where bk is 0 or 1, specifying the number of trees of order k. There is a one-to-one mapping between the binomial heap structure and the standard binary representation of the number n, and since the binary representation is unique, so is the binomial heap structure."
+    },
+    {
+        "question": "What is Prim's algorithm used for?",
+        "ground_truth": "Prim's algorithm is used to build a minimum spanning tree. Starting with a set S containing just the starting vertex, it builds up the tree by finding the vertex in S which has an edge to the next vertex with minimal weight. The closest array keeps track of the weights of those edges to save time by only checking the weights mentioned in that array or list."
+    },
+    {
+        "question": "What is an abstract data type and what is its advantage?",
+        "ground_truth": "An abstract data type separates the interface from the implementation. The advantage of abstract data types is discussed in the context of linked lists, where certain useful procedures may not be directly accessible. For instance, the standard abstract data type of a list does not offer an efficient procedure to give the last element, whereas it would be trivial to find the last element of an array of a known number of elements."
+    },
+    {
+        "question": "What is XML and how is it used to represent data structures?",
+        "ground_truth": "XML (eXtensible Markup Language) has become a quasi-standard for communicating data structures between different computers and possibly different programming languages. A linked list can be represented in XML using tags such as ol and li for a list, or using a cell-oriented representation with cell, first, and rest tags. There are usually many different ways to represent the same object in XML."
+    },
+    {
+        "question": "What is a loop invariant and why is it important?",
+        "ground_truth": "Loop invariants are discussed in the context of arrays and iteration. They are important for reasoning about the correctness of algorithms that use loops. The notes cover invariants as a fundamental concept alongside arrays and loops in Chapter 2, which forms the basis for understanding how iterative algorithms maintain correct state throughout their execution."
+    },
+    {
+        "question": "What are the key logarithm rules mentioned in the appendix?",
+        "ground_truth": "The key rules for logarithms are: loga(bc) = loga(b) + loga(c), loga(b/c) = loga(b) - loga(c), and loga(b^r) = r * loga(b). Special cases include log(a^n) = n * log(a) and log(n√a) = (1/n) * log(a). For large n, the useful approximation is log(n!) = n*log(n) + O(n)."
+    }
+]

@@ -1,10 +1,12 @@
-from langchain_huggingface.embeddings import HuggingFaceEmbeddings
+from langchain_openai import OpenAIEmbeddings
 from langchain_qdrant import QdrantVectorStore
+from dotenv import load_dotenv
 
+load_dotenv()
 
 def retriever(user_query: str):
-    embedding_model = HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-MiniLM-L6-v2"
+    embedding_model = OpenAIEmbeddings(
+        model="text-embedding-3-large"
     )
 
     vector_db = QdrantVectorStore.from_existing_collection(
