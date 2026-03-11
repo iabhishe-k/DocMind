@@ -1,180 +1,322 @@
 # DocMind
+
 ### Conversational RAG Document Intelligence System
 
-> Upload any PDF and have a full conversation with it — answers grounded strictly in the document, every response cited to the exact source page.
+> Upload any PDF and have a full conversation with it — answers grounded strictly in the document with explicit page citations.
 
 ---
 
-## Status: In Progress
+## 🚧 Status
 
-| Component | Status |
-|---|---|
-| PDF Ingestion & Chunking | ✅ Done |
-| Embedding Model (OpenAI text-embedding-3-large) | ✅ Done |
-| Vector Store (Qdrant) | ✅ Done |
-| RAG Pipeline | ✅ Done |
-| RAGAS Evaluation | ✅ Done |
-| Hybrid Search (Dense + BM25 + RRF) | 🔄 In Progress |
-| Streamlit UI | 🔜 Coming |
+| Component                | Status     |
+| ------------------------ | ---------- |
+| PDF Ingestion & Chunking | ✅ Done    |
+| Embedding Model          | ✅ Done    |
+| Vector Store (Qdrant)    | ✅ Done    |
+| RAG Pipeline             | ✅ Done    |
+| RAGAS Evaluation         | ✅ Done    |
+| Hybrid Retrieval         | ✅ Done    |
+| Streamlit UI             | 🔜 Coming  |
 
 ---
 
 ## 📌 What is DocMind?
 
-DocMind is a Retrieval-Augmented Generation (RAG) system that lets you upload any PDF document and ask questions about it in natural language. Instead of hallucinating answers, it retrieves the most relevant chunks from the document, passes them as context to an LLM, and returns a grounded answer with exact page citations.
+DocMind is a **Retrieval-Augmented Generation (RAG) system** that allows users to upload a PDF and ask questions about it using natural language.
 
-**The problem it solves:** Large PDFs are hard to search through manually. DocMind lets you have a conversation with your document — ask follow-up questions, get precise answers, and always know which page the answer came from.
+Instead of relying purely on an LLM, DocMind retrieves the most relevant sections from the document and provides them as context to the model. The final answer is generated **strictly from retrieved content**, with **source page citations**.
+
+### Problem
+
+Large PDFs (technical papers, books, reports) are difficult to navigate manually.
+
+DocMind allows users to:
+
+- Ask questions about a document
+- Get grounded answers
+- See exactly **which page the answer came from**
 
 ---
 
 ## 🛠 Tech Stack
 
-| Layer | Tool | Why |
-|---|---|---|
-| PDF Loading | LangChain PyPDFLoader | Extracts text page by page with metadata |
-| Chunking | RecursiveCharacterTextSplitter | Splits on paragraph → sentence → word boundaries |
-| Embeddings | OpenAI text-embedding-3-large | 3072-dim, state-of-the-art semantic similarity |
-| Vector Store | Qdrant (Docker) | Production-grade vector database |
-| LLM | GPT-4o-mini | Fast, cheap, accurate for document QA |
-| Orchestration | LangChain | Connects ingestion → retrieval → generation |
-| Evaluation | RAGAS | Quantitative metrics for RAG quality |
+| Layer           | Tool                            | Purpose                       |
+| --------------- | ------------------------------- | ----------------------------- |
+| PDF Loading     | LangChain `PyPDFLoader`         | Extract page-wise text        |
+| Chunking        | RecursiveCharacterTextSplitter  | Semantic chunk splitting      |
+| Embeddings      | OpenAI `text-embedding-3-large` | High quality semantic vectors |
+| Vector Database | Qdrant (Docker)                 | Vector similarity search      |
+| LLM             | `gpt-4o-mini`                   | Answer generation             |
+| Retrieval       | Dense + BM25 + RRF              | Hybrid search                 |
+| Evaluation      | RAGAS                           | Quantitative RAG evaluation   |
+| UI (Planned)    | Streamlit                       | Interactive interface         |
 
 ---
 
-## 🧠 How It Works
+## 🧠 System Architecture
 
 ```
-PDF File
-    ↓
-PyPDFLoader → extract text page by page
-    ↓
-RecursiveCharacterTextSplitter → 500 char chunks, 50 char overlap
-    ↓
-OpenAI text-embedding-3-large → 3072-dimensional vectors
-    ↓
-Qdrant → store vectors + metadata (source file, page number)
-    ↓
-User Query → embed query → cosine similarity search
-    ↓
-Top 4 chunks retrieved (LangChain default) → all passed as context to LLM
-    ↓
-GPT-4o-mini → grounded answer + page citation
+PDF Document
+     ↓
+PyPDFLoader
+     ↓
+RecursiveCharacterTextSplitter
+(800 char chunks, 150 overlap)
+     ↓
+OpenAI Embeddings
+(text-embedding-3-large)
+     ↓
+Qdrant Vector Store
+     ↓
+User Query
+     ↓
+Dense Retrieval (20 candidates)
++
+BM25 Retrieval (20 candidates)
+     ↓
+Reciprocal Rank Fusion
+     ↓
+Top 6 Context Chunks
+     ↓
+GPT-4o-mini
+     ↓
+Grounded Answer + Page Citations
 ```
 
 ---
 
-## 🔍 Retrieval Algorithm
+## 🔍 Retrieval Strategy Evolution
 
-**Current: Dense Retrieval via Cosine Similarity**
-
-Chunks are embedded using `text-embedding-3-large` (3072-dim). At query time, the question is embedded into the same space and Qdrant returns the top 4 most similar chunks via cosine similarity. All 4 chunks are passed as full context to GPT-4o-mini.
-
-**Chunk size:** 500 characters, 50 character overlap
+DocMind went through multiple iterations to improve **retrieval quality and answer grounding**.
 
 ---
 
+### v1 — Dense Retrieval
+
+Initial version used pure vector similarity search.
+
+```
+Query → Embedding → Qdrant similarity → Top 4 → LLM
+```
+
+| Parameter        | Value          |
+| ---------------- | -------------- |
+| Chunk size       | 500 characters |
+| Overlap          | 50 characters  |
+| Retrieved chunks | 4              |
+
+#### Metrics
+
+| Metric           | Score |
+| ---------------- | ----- |
+| Faithfulness     | 0.971 |
+| Answer Relevancy | 0.889 |
+| Context Recall   | 0.717 |
+
+---
+
+### v2 — Hybrid Retrieval
+
+Hybrid retrieval combines **semantic similarity** with **keyword matching**.
+
+Dense retrieval captures semantic meaning while BM25 helps retrieve:
+
+- proper nouns
+- numbers
+- technical keywords
+
+Results from both retrievers are merged using **Reciprocal Rank Fusion (RRF)**.
+
+```
+Dense (8)
++
+BM25 (8)
+↓
+RRF
+↓
+Top 4
+```
+
+#### RRF Formula
+
+```
+score(d) = Σ 1 / (k + rank_i)
+```
+
+where `k = 60`.
+
+#### Metrics
+
+| Metric           | Score |
+| ---------------- | ----- |
+| Faithfulness     | 0.928 |
+| Answer Relevancy | 0.894 |
+| Context Recall   | 0.692 |
+
+Hybrid retrieval improved answer relevancy but slightly reduced context recall due to noisy BM25 matches on technical text.
+
+---
+
+### v3 — Improved Hybrid Retrieval (Final)
+
+Two improvements were introduced:
+
+1. Larger chunk size for better semantic completeness
+2. Larger candidate pool before RRF fusion
+
+```
+Dense (20)
++
+BM25 (20)
+↓
+RRF
+↓
+Top 6
+↓
+LLM
+```
+
+#### Parameters
+
+| Parameter  | Value          |
+| ---------- | -------------- |
+| Chunk size | 800 characters |
+| Overlap    | 150 characters |
+| retrieve_n | 20             |
+| top_k      | 6              |
+
+#### Metrics
+
+| Metric           | Score     |
+| ---------------- | --------- |
+| Faithfulness     | 0.946     |
+| Answer Relevancy | 0.905     |
+| Context Recall   | **0.846** |
+
+---
 
 ## 📊 RAGAS Evaluation
 
-The pipeline is evaluated using [RAGAS](https://docs.ragas.io) on 20 hand-crafted QA pairs from the sample document.
+The system is evaluated using **RAGAS** on a dataset of **50 manually created QA pairs** derived from the sample document.
 
-| Metric | What it measures | Score (v1 — Dense only) |
-|---|---|---|
-| **Faithfulness** | Is the answer supported by the retrieved context? | 0.971 |
-| **Answer Relevancy** | Does the answer actually address the question? | 0.889 |
-| **Context Recall** | Did retrieval find the chunks needed to answer correctly? | 0.717 |
+Metrics used:
+
+| Metric           | Meaning                                              |
+| ---------------- | ---------------------------------------------------- |
+| Faithfulness     | Whether the answer is supported by retrieved context |
+| Answer Relevancy | Whether the answer addresses the question            |
+| Context Recall   | Whether the retriever fetched the correct context    |
+
+### Final Results
+
+| Metric           | Dense | Hybrid | Improved Hybrid |
+| ---------------- | ----- | ------ | --------------- |
+| Faithfulness     | 0.971 | 0.928  | 0.946           |
+| Answer Relevancy | 0.889 | 0.894  | 0.905           |
+| Context Recall   | 0.717 | 0.692  | **0.846**       |
 
 ---
 
-## 📁 File Structure
+## 📈 Key Insights
+
+- **Chunk size strongly affects recall** — larger chunks preserve more context.
+- **Hybrid retrieval needs larger candidate pools** for RRF to work effectively.
+- **Dense retrieval alone performs very well**, but hybrid search improves coverage.
+- **RAGAS evaluation prevented regression** — intuition alone suggested v2 was better, but metrics showed otherwise.
+
+---
+
+## 📁 Project Structure
 
 ```
 DocMind/
 │
 ├── app/
 │   ├── __init__.py
-│   ├── embeddings.py        # PDF ingestion + OpenAI embedding + Qdrant indexing
-│   ├── ingestion.py         # PDF loading and chunking
-│   ├── retriever.py         # Qdrant similarity search
-│   ├── rag_pipeline.py      # Core RAG chain: retrieve → prompt → LLM → answer
-│   └── evaluator.py         # RAGAS evaluation suite
+│   ├── embeddings.py        
+│   ├── ingestion.py         
+│   ├── retriever.py         
+│   ├── rag_pipeline.py    
+│   └── evaluator.py        
 │
 ├── data/
-│   ├── dsa.pdf              # Sample document (never committed)
+│   ├── dsa.pdf                 (never committed)
 │   └── eval/
-│       └── qa_pairs.json        # 20 QA pairs for evaluation(auto-generated)
+│       └── qa_pairs.json        
 │
-├── .env                     # API keys (never committed)
-├── .env.example             # Safe template
+├── .env                        (never committed)
+├── .env.example             
 ├── .gitignore
-├── docker-compose.yml       # Qdrant vector database
+├── docker-compose.yml     
 ├── requirements.txt
 └── README.md
 ```
 
 ---
 
-## ⚙️ Setup & Installation
+## ⚙️ Setup
 
-### Prerequisites
-- Python 3.10+
-- Docker Desktop
+### 1. Clone repository
 
-### 1. Clone the repository
 ```bash
 git clone https://github.com/iabhishe-k/docmind.git
-cd DocMind
+cd docmind
 ```
 
 ### 2. Create virtual environment
+
+**Windows**
 ```bash
 python -m venv venv
-venv\Scripts\activate        # Windows
-# source venv/bin/activate   # Mac/Linux
+venv\Scripts\activate
+```
+
+**Mac/Linux**
+```bash
+python -m venv venv
+source venv/bin/activate
 ```
 
 ### 3. Install dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Set up environment variables
+### 4. Setup environment variables
+
 ```bash
 copy .env.example .env
 ```
-Edit `.env` and add your keys:
+
+Add your OpenAI key:
+
 ```
-OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_API_KEY=your_key_here
 ```
-Get your OpenAI API key at [platform.openai.com](https://platform.openai.com)
 
 ### 5. Start Qdrant
+
 ```bash
 docker-compose up -d
 ```
-Verify at [http://localhost:6333/dashboard](http://localhost:6333/dashboard)
 
-### 6. Index your document
+Dashboard: `http://localhost:6333/dashboard`
 
-Add your own PDF to the `data/` folder, then update the path in `app/embeddings.py`:
-```python
-pdf_path = Path(__file__).parent.parent / "data/your_file.pdf"
+### 6. Index a document
+
+Place a PDF inside `data/` and update the path inside the pipeline if needed.
+
+### 7. Run the RAG pipeline
+
+```bash
+python app/rag_pipeline.py
 ```
 
-Then run:
-```bash
-cd app
-python embeddings.py
-```
+### 8. Run evaluation
 
-### 7. Run the pipeline
 ```bash
-python rag_pipeline.py
-```
-
-### 8. Run evaluation (optional)
-```bash
-python evaluator.py
+python app/evaluator.py
 ```
 
 ---
@@ -182,24 +324,30 @@ python evaluator.py
 ## 🐳 Docker Commands
 
 ```bash
-docker-compose up -d      # start Qdrant
-docker-compose down       # stop Qdrant
-docker-compose logs       # view logs
+# Start Qdrant
+docker-compose up -d
+
+# Stop
+docker-compose down
+
+# Logs
+docker-compose logs
 ```
 
 ---
 
 ## 🔑 Environment Variables
 
-| Variable | Required | Description |
-|---|---|---|
-| `OPENAI_API_KEY` | ✅ Yes | For embeddings (text-embedding-3-large) and LLM (gpt-4o-mini) |
+| Variable         | Description                            |
+| ---------------- | -------------------------------------- |
+| `OPENAI_API_KEY` | Used for embeddings and LLM generation |
 
 ---
 
 ## 👤 Author
 
-**Abhishek Kumar Singh**
+**Abhishek Kumar Singh**  
+
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue)](https://linkedin.com/in/iabhishe-k)
 [![GitHub](https://img.shields.io/badge/GitHub-Follow-blue)](https://github.com/iabhishe-k)

@@ -1,23 +1,21 @@
 from dotenv import load_dotenv
-import os
 from retriever import retriever
+from embeddings import build_index
 from openai import OpenAI
-import time
+from pathlib import Path
 
 load_dotenv()
-
-def get_llm():
-    return OpenAI()
+PDF_PATH = Path(__file__).parent.parent / "data/dsa.pdf"
 
 
 class RAGPipeline:
-    def __init__(self, retriever = retriever):
-        self.retriever = retriever
-        self.llm = get_llm()
+    def __init__(self):
+        self.chunks, self.bm25 = build_index(PDF_PATH)
+        self.llm = OpenAI()
 
     def answer(self, question: str) -> dict:
         
-        results = self.retriever(question)
+        results = retriever(question, self.chunks, self.bm25)
 
         context_parts = []
         sources = []
@@ -27,10 +25,7 @@ class RAGPipeline:
             source_file = doc.metadata.get('source', 'Unknown')
             page_num = doc.metadata.get('page_label', '?')
             source_label = f"{source_file} (page {page_num})"
-
-            context_parts.append(
-                f"[Source: {source_label}]\n{doc.page_content}"
-            )
+            context_parts.append(f"[Source: {source_label}]\n{doc.page_content}")
             sources.append(source_label)
             chunks_text.append(doc.page_content)
 
@@ -42,7 +37,8 @@ class RAGPipeline:
             {context}
 
             Guidelines:
-            - Answer using ONLY information from the context above
+            - Carefully read all context chunks before answering.
+            - If multiple chunks contain relevant information, combine them.
             - Always mention the page number your answer comes from
             - If the answer is not in the context, respond exactly:
             "I could not find this information in the provided document."
